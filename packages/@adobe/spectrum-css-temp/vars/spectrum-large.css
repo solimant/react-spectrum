@@ -71,6 +71,9 @@
   --spectrum-global-dimension-font-size-1100: 55px;
   --spectrum-global-dimension-font-size-1200: 62px;
   --spectrum-global-dimension-font-size-1300: 70px;
+  --spectrum-alias-avatar-size-100: 26px;
+  --spectrum-alias-avatar-size-400: 36px;
+  --spectrum-alias-avatar-size-600: 46px;
   --spectrum-actionbutton-touch-hit-x: var(--spectrum-global-dimension-static-size-50);
   --spectrum-actionbutton-touch-hit-y: var(--spectrum-global-dimension-static-size-50);
   --spectrum-actionbutton-emphasized-touch-hit-x: var(--spectrum-global-dimension-static-size-50);

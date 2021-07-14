@@ -19,4 +19,6 @@ governing permissions and limitations under the License.
 
   -webkit-user-drag: none;
   user-select: none;
+
+  padding: var(--spectrum-alias-focus-ring-gap);
 }
