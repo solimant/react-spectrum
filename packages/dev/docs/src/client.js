@@ -10,12 +10,13 @@
  * governing permissions and limitations under the License.
  */
 
-import {ActionButton} from '@react-spectrum/button';
+import {ActionButton, defaultTheme, Provider, Text} from '@adobe/react-spectrum';
+import algoliasearch from 'algoliasearch/lite';
 import docsStyle from './docs.css';
+import {Item, SearchAutocomplete, Section} from '@react-spectrum/autocomplete';
 import {listen} from 'quicklink';
 import React, {useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
-import {SearchField} from '@react-spectrum/searchfield';
 import ShowMenu from '@spectrum-icons/workflow/ShowMenu';
 import {ThemeSwitcher} from './ThemeSwitcher';
 import {watchModals} from '@react-aria/aria-modal-polyfill';
@@ -192,119 +193,93 @@ function Hamburger() {
 }
 
 function DocSearch() {
-  useEffect(() => {
-    // the following comes from docsearch.min.js
-    // eslint-disable-next-line no-undef
-    const search = docsearch({
-      apiKey: '9b5a0967c8bb751b5048ecfc99917979',
-      indexName: 'react-spectrum',
-      inputSelector: '#algolia-doc-search',
-      debug: false // Set debug to true to inspect the dropdown
-    });
+  const client = algoliasearch('1V1Q59JVTR', '44a7e2e7508ff185f25ac64c0a675f98');
+  const searchIndex = client.initIndex('react-spectrum');
+  const searchOptions = {
+    highlightPreTag: `<mark class="${docsStyle.docSearchBoxMark}">`,
+    highlightPostTag: '</mark>'
+  };
 
-    // autocomplete:opened event handler
-    search.autocomplete.on('autocomplete:opened', event => {
-      const input = event.target;
-      
-      // WAI-ARIA 1.2 uses aria-controls rather than aria-owns on combobox.
-      if (!input.hasAttribute('aria-controls') && input.hasAttribute('aria-owns')) {
-        input.setAttribute('aria-controls', input.getAttribute('aria-owns'));
+  const [searchValue, setSearchValue] = useState('');
+  const [predictions, setPredictions] = useState(null);
+  const [suggestions, setSuggestions] = useState(null);
+
+  let updatePredictions = ({hits}) => {
+    setPredictions(hits);
+    let sections = [];
+    hits.forEach(prediction => {
+      let hierarchy = prediction.hierarchy;
+      let objectID = prediction.objectID;
+      let lvl0 = hierarchy.lvl0;
+      let section = sections.find(section => section.title === lvl0);
+      if (!section) {
+        section = {title: lvl0, items: []};
+        sections.push(section);
       }
-
-      // Listbox dropdown should have an accessibility name.
-      const listbox = input.parentElement.querySelector(`#${input.getAttribute('aria-controls')}`);
-      listbox.setAttribute('aria-label', 'Search results');
-    });
-
-    // autocomplete:updated event handler
-    search.autocomplete.on('autocomplete:updated', event => {
-      const input = event.target;
-      const listbox = input.parentElement.querySelector(`#${input.getAttribute('aria-controls')}`);
-      
-      // Add aria-hidden to the logo in the footer so that it does not break the listbox accessibility tree structure.
-      const footer = listbox.querySelector('.algolia-docsearch-footer');
-      if (footer && !footer.hasAttribute('aria-hidden')) {
-        footer.setAttribute('aria-hidden', 'true');
-        footer.querySelector('a[href]').tabIndex = -1;
-      }
-
-      // With no results, the message should be an option in the listbox. 
-      const noResults = listbox.querySelector('.algolia-docsearch-suggestion--no-results');
-      if (noResults) {
-        noResults.setAttribute('role', 'option');
-
-        // Use aria-live to ensure that the noResults message gets announced.
-        noResults.querySelector('.algolia-docsearch-suggestion--title').setAttribute('aria-live', 'assertive');
-      }
-
-      // Clean up WAI-ARIA listbox structure by setting role=presentation to non-semantic div and span elements.
-      [...listbox.querySelectorAll('div:not([role]), span:not([role])')].forEach(element => element.setAttribute('role', 'presentation'));
-
-      // Clean up WAI-ARIA listbox structure by correcting improper nesting of interactive controls.
-      [...listbox.querySelectorAll('.ds-suggestion[role="option"]')].forEach(element => {
-        const link = element.querySelector('a.algolia-docsearch-suggestion');
-        if (link) {
-
-          // Remove static aria-label="Link to the result" that causes all options to be named the same.
-          link.removeAttribute('aria-label');
-
-          // The interactive element should have role="option", a unique id, and tabIndex.
-          link.setAttribute('role', 'option');
-          link.id = `${element.id}-link`;
-          link.tabIndex = -1;
-
-          // containing element should have role="presentation"
-          element.setAttribute('role', 'presentation');
-
-          // Move aria-selected to the link, and update aria-activedescendant on input.
-          if (element.hasAttribute('aria-selected')) {
-            link.setAttribute('aria-selected', element.getAttribute('aria-selected'));
-            element.removeAttribute('aria-selected');
-            input.setAttribute('aria-activedescendant', link.id);
-          }
-
-          // Fix double voicing of options when subcategory matches suggestion title.
-          const subcategoryColumn = link.querySelector('.algolia-docsearch-suggestion--subcategory-column');
-          const suggestionTitle = link.querySelector('.algolia-docsearch-suggestion--title');
-          if (subcategoryColumn.textContent.trim() === suggestionTitle.textContent.trim()) {
-            subcategoryColumn.setAttribute('aria-hidden', 'true');
-          }
-        }
-      });
-    });
-
-    // When navigating listbox, move aria-selected to link.
-    search.autocomplete.on('autocomplete:cursorchanged', event => {
-      const input = event.target;
-      const listbox = input.parentElement.querySelector(`#${input.getAttribute('aria-controls')}`);
-      let element = listbox.querySelector('a.algolia-docsearch-suggestion[aria-selected]');
-      if (element) {
-        element.removeAttribute('aria-selected');
-      }
-      
-      element = listbox.querySelector('.ds-suggestion.ds-cursor[aria-selected]');
-      if (element) {
-        let link = element.querySelector('a.algolia-docsearch-suggestion');
-        
-        // Move aria-selected to the link, and update aria-activedescendant on input.
-        if (link) {
-          link.id = `${element.id}-link`;
-          link.setAttribute('aria-selected', 'true');
-          input.setAttribute('aria-activedescendant', link.id);
-          element.removeAttribute('aria-selected');
+      let text = [];
+      let textValue = [];
+      for (let i = 1; i < 6; i++) {
+        if (hierarchy[`lvl${i}`]) {
+          text.push(prediction._highlightResult.hierarchy[`lvl${i}`].value);
+          textValue.push(hierarchy[`lvl${i}`]);
         }
       }
+      section.items.push(
+        <Item key={objectID} textValue={textValue.join(' | ')}>
+          <Text><span dangerouslySetInnerHTML={{__html: text.join(' | ')}} /></Text>
+          {
+            prediction.content &&
+            <Text slot="description">
+              <span dangerouslySetInnerHTML={{__html: prediction._snippetResult.content.value}} />
+            </Text>
+          }
+        </Item>
+      );
     });
-  }, []);
+    let suggestions = sections.map((section, index) => <Section key={`${index}-lvl0-${section.title}`} title={section.title}>{section.items}</Section>);
+    setSuggestions(suggestions);
+  };
+
+  let onInputChange = (query) => {
+    if (!query && predictions) {
+      setPredictions(null);
+      setSuggestions(null);
+    }
+    setSearchValue(query);
+    searchIndex
+      .search(
+        query,
+        searchOptions
+      )
+      .then(updatePredictions);
+  };
+
+  let onSubmit = (value, key) => {
+    if (key) {
+      let prediction = predictions.find(prediction => key === prediction.objectID);
+      let url = prediction.url;
+      if (
+        url.includes('https://react-spectrum.adobe.com') &&
+        !url.includes(window.location.host)) {
+        url = url.replace('https://react-spectrum.adobe.com', window.location.origin);
+      }
+      window.location.href = url;
+    }
+  };
 
   return (
-    <div role="search">
-      <SearchField
+    <Provider theme={defaultTheme} role="search">
+      <SearchAutocomplete
         aria-label="Search"
+        placeholder="Search"
         UNSAFE_className={docsStyle.docSearchBox}
         id="algolia-doc-search"
-        placeholder="Search" />
-    </div>
+        value={searchValue}
+        onInputChange={onInputChange}
+        onSubmit={onSubmit}>
+        {suggestions}
+      </SearchAutocomplete>
+    </Provider>
   );
 }
 

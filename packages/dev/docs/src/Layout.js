@@ -206,7 +206,6 @@ function Page({children, currentPage, publicUrl, styles, scripts}) {
               }
             }
           )}} />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.css" />
       </head>
       <body>
         {children}
@@ -219,7 +218,6 @@ function Page({children, currentPage, publicUrl, styles, scripts}) {
               document.head.appendChild(script);
             });
           `}} />
-        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.js" />
       </body>
     </html>
   );
