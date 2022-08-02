@@ -17,6 +17,7 @@ import docStyles from './docs.css';
 import {getAnchorProps} from './utils';
 import heroImageAria from 'url:../pages/assets/ReactAria_976x445_2x.png';
 import heroImageHome from 'url:../pages/assets/ReactSpectrumHome_976x445_2x.png';
+import heroImageInternationalized from 'url:../pages/assets/internationalized@2x.png?as=webp&width=1952';
 import heroImageSpectrum from 'url:../pages/assets/ReactSpectrum_976x445_2x.png';
 import heroImageStately from 'url:../pages/assets/ReactStately_976x445_2x.png';
 import highlightCss from './syntax-highlight.css';
@@ -40,7 +41,8 @@ const TLD = 'react-spectrum.adobe.com';
 const HERO = {
   'react-spectrum': heroImageSpectrum,
   'react-aria': heroImageAria,
-  'react-stately': heroImageStately
+  'react-stately': heroImageStately,
+  'internationalized': heroImageInternationalized
 };
 
 const mdxComponents = {
@@ -204,7 +206,6 @@ function Page({children, currentPage, publicUrl, styles, scripts}) {
               }
             }
           )}} />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.css" />
       </head>
       <body>
         {children}
@@ -217,7 +218,6 @@ function Page({children, currentPage, publicUrl, styles, scripts}) {
               document.head.appendChild(script);
             });
           `}} />
-        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.js" />
       </body>
     </html>
   );
@@ -320,10 +320,12 @@ function Nav({currentPageName, pages}) {
   let title = currentParts.length > 1 ? dirToTitle(currentPageName) : 'React Spectrum';
   let currentPageIsIndex = INDEX_RE.test(currentPageName);
   let sectionIndex = './index.html';
+  let back = '../index.html';
   if (isBlog) {
     sectionIndex = '/index.html';
-  } else if (currentPageName.startsWith('internationalized/')) {
+  } else if (currentPageName.startsWith('internationalized/') && currentPageName !== 'internationalized/index.html') {
     sectionIndex = '../index.html';
+    back = '../../index.html';
   }
 
   function SideNavItem({name, url, title, preRelease}) {
@@ -345,7 +347,7 @@ function Nav({currentPageName, pages}) {
     <nav className={docStyles.nav} aria-labelledby="nav-title-id">
       <header>
         {currentParts.length > 1 &&
-          <a href="../index.html" className={docStyles.backBtn}>
+          <a href={back} className={docStyles.backBtn}>
             <ChevronLeft aria-label="Back" />
           </a>
         }
